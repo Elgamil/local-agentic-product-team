@@ -1,0 +1,48 @@
+{
+  "run_id": "20261018T212130Z",
+  "model_id": "gemma4:latest",
+  "runtime": "google-adk+litellm+ollama",
+  "started_at": "2026-10-18T21:21:30.158616Z",
+  "finished_at": "2026-10-18T21:21:49.577519Z",
+  "total_duration_ms": 19418.903,
+  "checks": [
+    {
+      "name": "endpoint_health",
+      "success": true,
+      "duration_ms": 49.061082999969585,
+      "output": "Available models: ['gemma4:latest', 'qwen2.5:7b', 'gemma4:e4b']",
+      "error": null
+    },
+    {
+      "name": "basic_completion",
+      "success": true,
+      "duration_ms": 4176.940542000011,
+      "output": "The user is asking a simple arithmetic question (\"What is 2 + 2?\").\nThe required output format is \"in one sentence\".\nI need to provide the answer directly and concisely.Two plus two equals four.",
+      "error": null
+    },
+    {
+      "name": "structured_output",
+      "success": true,
+      "duration_ms": 4332.947542000056,
+      "output": "{\"answer\":\"Paris\",\"confidence\":1.0,\"reasoning\":\"Paris is the widely accepted and established capital city of France.\"}",
+      "error": null
+    },
+    {
+      "name": "tool_call",
+      "success": true,
+      "duration_ms": 10857.453290999956,
+      "output": "{\"tool_name\":\"get_workspace_info\",\"success\":true,\"payload\":{\"python_version\":\"3.11.14\",\"platform\":\"Darwin 27.0.0\",\"workspace_path\":\"/Users/ahmedelgamil/Desktop/LocalAgenticSoftwareDeliveryLab\",\"file_count\":16,\"venv_active\":true},\"agent_used_tool\":true}",
+      "error": null
+    },
+    {
+      "name": "report_integrity",
+      "success": true,
+      "duration_ms": 1.0725409999849944,
+      "output": "Serialised 1291 bytes; 4 checks round-tripped",
+      "error": null
+    }
+  ],
+  "passed": 5,
+  "failed": 0,
+  "notes": null
+}
