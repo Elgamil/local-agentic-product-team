@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">MiniShop Lite - Product Catalog</h1>
+
+    <!-- Search Form -->
+    <form action="/" method="GET" class="mb-5">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Search products by name..." value="{{ query or '' }}">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+
+    <!-- Product Grid or No Results -->
+    {% if products %}
+        <div class="row product-grid">
+            {% for prod in products %}
+            <div class="col-md-4 col-sm-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ prod.name }}</h5>
+                        <p class="card-text">{{ prod.description }}</p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <h4 class="card-price">${{ '%.2f'|format(prod.price) }}</h4>
+                            <span class="badge fs-6">
+                                {% if prod.in_stock %}
+                                <span class="badge in-stock">In Stock</span>
+                                {% else %}
+                                <span class="badge out-of-stock">Out of Stock</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- No results block -->
+        <div class="alert alert-info text-center no-products">
+            <p class="lead">No products match your search criteria.</p>
+            <p>Try adjusting your search term or checking back later!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

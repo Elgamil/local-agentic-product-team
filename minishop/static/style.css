@@ -1,0 +1,206 @@
+/* Global Reset and Base Styling */
+:root {
+    --primary-color: #3b82f6; /* Blue accent */
+    --secondary-color: #10b981; /* Green for in-stock */
+    --danger-color: #ef4444; /* Red for out-of-stock */
+    --text-color: #333;
+    --bg-color: #f9fafb;
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-color);
+}
+
+/* Layout Container */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header Styling */
+header {
+    background: linear-gradient(90deg, var(--primary-color), #60a5fa);
+    color: white;
+    padding: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+/* Search Form Styling */
+.search-form {
+    display: flex;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.search-form input[type="text"] {
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 16px;
+    flex-grow: 1;
+    transition: border-color 0.2s;
+}
+
+.search-form input[type="text"]:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.search-form button {
+    padding: 10px 20px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.search-form button:hover {
+    background-color: #2563eb;
+}
+
+/* Product Grid and Cards */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    margin-top: 30px;
+}
+
+.product-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.product-card h2 {
+    font-size: 1.5rem;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+}
+
+.product-card p {
+    margin-bottom: 1rem;
+}
+
+.product-card .description {
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    min-height: 45px; /* Consistent height for descriptions */
+}
+
+/* Price Styling */
+.product-price {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #16a34a; /* Darker green for price */
+    display: block;
+    margin-bottom: 1rem;
+}
+
+/* Stock Badges */
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
+.in-stock {
+    background-color: #dcfce7; /* Light green background */
+    color: var(--secondary-color); /* Green text */
+}
+
+.out-of-stock {
+    background-color: #fee2e2; /* Light red background */
+    color: var(--danger-color); /* Red text */
+}
+
+/* No Products Empty State */
+.no-products {
+    text-align: center;
+    padding: 50px;
+    background-color: #f3f4f6;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: #6b7280;
+}
+
+.no-products h2 {
+    margin-bottom: 10px;
+    font-size: 1.75rem;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+    
+    header .container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .search-form {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .search-form input[type="text"],
+    .search-form button {
+        padding: 10px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-form {
+        flex-direction: column;
+    }
+    
+    .search-form input[type="text"],
+    .search-form button {
+        width: 100%;
+        border-radius: 6px;
+    }
+}

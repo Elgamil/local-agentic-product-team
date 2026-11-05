@@ -1,257 +1,185 @@
 # Local Agentic Software Delivery Lab
 
-**Milestone 1 — Runtime Proof of Concept**
-
-A local-first, model-independent agent workflow skeleton. This milestone proves
-that Google ADK + LiteLLM + Ollama can run `gemma4:latest` locally and satisfy
-the five acceptance checks: endpoint health, basic completion, structured output,
-real tool calling, and report integrity.
+A local-first, model-independent agentic software delivery laboratory demonstrating an end-to-end multi-agent software engineering team powered by local models running via **Google ADK + LiteLLM + Ollama**.
 
 ---
 
-## System requirements
+## 1. System Requirements & Environment
 
-| Component | Required | Verified value |
+| Component | Target Specification | Verified Environment |
 |---|---|---|
-| macOS | Apple Silicon recommended | Darwin 27.0.0 (M4) |
-| Python | ≥ 3.11 | 3.11.14 (`/opt/homebrew/bin/python3.11`) |
-| Ollama | Running on `localhost:11434` | `ollama 0.20.0+` |
-| Disk | ~10 GB free for `gemma4:latest` | 9.6 GB (Q4\_K\_M) |
+| Platform | macOS (Apple Silicon M-series) | MacBook Air M4, 16 GB unified memory |
+| Python | ≥ 3.11 | 3.11.14 (`.venv/bin/python`) |
+| Local Inference | Ollama | Running at `http://localhost:11434` |
+| Local Models | `gemma4:latest` (Default, 9.6 GB, Q4_K_M) | Verified in Ollama model list |
+| Alternate Models | `qwen2.5:7b` (4.7 GB, Q4_K_M) | Verified in Ollama model list |
 
 ---
 
-## Model
+## 2. Clean Mac Setup & Installation
 
-```
-gemma4:latest   c6eb396dbd59   9.6 GB
-```
-
-Capabilities reported by `ollama show gemma4:latest`:
-- Architecture: `gemma4`, 8B parameters, Q4\_K\_M quantisation
-- Capabilities: **completion, vision, audio, tools, thinking**
-- Context length: 131 072 tokens
-
----
-
-## Setup (exact commands)
+The project uses a standard, modern PEP 517/660 `setuptools.build_meta` build backend and is configured for clean editable installation on macOS.
 
 ```bash
-# 1. Clone / enter the workspace
-cd ~/Desktop/LocalAgenticSoftwareDeliveryLab
+# 1. Navigate to the project root directory
+cd /Users/ahmedelgamil/Desktop/LocalAgenticSoftwareDeliveryLabUpdated/LocalAgenticSoftwareDeliveryLab
 
-# 2. Create an isolated virtual environment with Python 3.11
-python3.11 -m venv .venv
-source .venv/bin/activate   # or: .venv/bin/python3.11 for explicit invocation
+# 2. Activate the macOS virtual environment
+source .venv/bin/activate
 
-# 3. Install all dependencies (network required)
-pip install \
-    "google-adk>=1.0.0" \
-    "litellm>=1.40.0" \
-    "mcp>=2.0.0" \
-    "ollama>=0.3.0" \
-    "pydantic>=2.0.0" \
-    "httpx>=0.27.0" \
-    "pytest>=8.0.0" \
-    "pytest-asyncio>=0.23.0"
+# 3. Install the project in editable mode
+python -m pip install -e . --no-build-isolation
 
-# 4. Confirm Ollama is running and gemma4 is available
-ollama list   # should show gemma4:latest
-
-# 5. (Optional) verify the endpoint directly
-curl http://localhost:11434/api/tags | python3.11 -m json.tool
-```
-
-> **Note on `mcp`:** `litellm 1.106.0` unconditionally imports the `mcp` package
-> in its tool-calling code path, even when MCP tools are not used. This is a
-> [known litellm bug](https://github.com/BerriAI/litellm/issues). Installing `mcp`
-> resolves it. This dependency is listed in `pyproject.toml`.
-
-### Verified installed versions
-
-```
-google-adk      2.12.0
-litellm         1.106.0
-mcp             2.3.0
-ollama          0.6.3
-pydantic        2.14.1
-httpx           0.28.1
-pytest          9.1.1
-pytest-asyncio  1.4.0
+# 4. Verify package installation
+python -c "import lab; import minishop; print('Local Agentic Lab successfully installed.')"
 ```
 
 ---
 
-## Running the probe
+## 3. Milestone Overview
 
+### Milestone 1 — Local Model Runtime PoC: COMPLETE
+- Validates local runtime connectivity through Google ADK 2.12.0 + LiteLLM 1.106.0 + Ollama.
+- 5/5 Acceptance Checks verified live with `gemma4:latest`:
+  1. Endpoint health check
+  2. Basic plain-text completion
+  3. Structured output via ADK
+  4. Real tool calling (`agent_used_tool=True`)
+  5. Report integrity (JSON round-trip)
+
+### Milestone 2 — Four-Agent Software Delivery & MiniShop Lite
+Deterministic, sequential multi-agent software delivery workflow:
+1. **Business Analyst**: Analyzes feature request; produces validated `RequirementsArtifact` with Functional Requirements (FRs), Given/When/Then Acceptance Criteria (ACs), and edge cases.
+2. **Software Architect**: Translates requirements into technical design; produces validated `ArchitectureArtifact` with Architectural Decisions (ADRs), component specifications, SQLite data model, and API endpoints.
+3. **Test Engineer**: Independently defines verification criteria; produces validated `TestPlanArtifact` with concrete test cases covering all acceptance criteria.
+4. **Senior Developer**: Implements MiniShop Lite (`database.py`, `app.py`, `templates/`, `static/`) via controlled project tools (`write_project_file`, `read_project_file`, `list_project_files`).
+5. **Authoritative Acceptance Testing**: Test runner executes pytest against the actual implementation.
+6. **Bounded Repair**: If acceptance tests fail, conducts up to 2 repair iterations.
+7. **Comprehensive Audit & Reporting**: Records full agent transcripts, events log, JSON report, and Markdown report.
+
+### Milestone 3 — Evaluation & Model Comparison Benchmark
+- Automated benchmark comparing models (e.g. `gemma4:latest` vs `qwen2.5:7b`) on the **price sorting** catalog task.
+- Isolates each run into its own temporary workspace copy (`runs/evaluations/eval_<task>_<model>_<timestamp>/`).
+- Generates a consolidated Markdown comparison report (`runs/evaluations/comparison_<task>_<timestamp>.md`).
+
+---
+
+## 4. MiniShop Lite Application
+
+MiniShop Lite is a lightweight, responsive e-commerce product catalog built with FastAPI, Jinja2, and SQLite:
+- Displays seeded products (name, description, formatted price, in/out of stock badges).
+- Case-insensitive substring search by product name.
+- User-friendly empty-state message when no products match.
+- Local SQLite database persistence (`minishop/minishop.db`).
+- Health check endpoint (`GET /health`).
+
+To launch the web application manually:
 ```bash
-# Set environment (or use defaults)
-export OLLAMA_API_BASE=http://localhost:11434
-export LAB_MODEL_ID=gemma4:latest
-
-# Run all five acceptance checks
-PYTHONPATH=. python -m lab.probe
+python -m uvicorn minishop.app:app --host 127.0.0.1 --port 8000
 ```
+- Catalog UI: `http://127.0.0.1:8000/`
+- Search Example: `http://127.0.0.1:8000/?q=keyboard`
+- Health Check: `http://127.0.0.1:8000/health`
 
-The probe writes a JSON report to `runs/<ISO-timestamp>.json`.
+---
 
-### Override model or endpoint
+## 5. Execution Guide (Terminal Commands)
 
+### A. Run Offline Unit & Acceptance Tests (No Ollama Required)
 ```bash
-PYTHONPATH=. python -m lab.probe --model gemma4:latest --base-url http://localhost:11434
+python -m pytest -m "not live" tests -v
 ```
+*Expected output: All offline tests PASS with 5 live tests deselected.*
 
-### Environment variables
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `LAB_MODEL_ID` | `gemma4:latest` | Model identifier |
-| `OLLAMA_API_BASE` | `http://localhost:11434` | Ollama endpoint |
-| `LAB_TIMEOUT_SECONDS` | `120` | Per-request timeout |
-| `LAB_LITELLM_PROVIDER` | `ollama_chat` | LiteLLM provider prefix |
-
----
-
-## Running the tests
-
+### B. Run Milestone 1 Live Probe (Requires Local Ollama)
 ```bash
-# Offline unit tests only (no Ollama required)
-PYTHONPATH=. python -m pytest tests/test_schemas.py tests/test_runtime_adapter.py -v
-
-# Live integration tests (Ollama must be running)
-PYTHONPATH=. python -m pytest tests/test_probe_live.py -v -m live
-
-# Full suite
-PYTHONPATH=. python -m pytest -v
+python -m lab.probe --model gemma4:latest --base-url http://localhost:11434
 ```
+*Expected output: 5/5 PASS.*
 
----
+### C. Run Milestone 2 Multi-Agent Delivery Workflow
+```bash
+# Default run with gemma4:latest
+python -m lab.workflow.orchestrator
 
-## Observed results (Milestone 1)
-
-Run ID: `20261018T212130Z`  
-Timestamp: 2026-10-18 21:21:30 UTC  
-Total duration: **19 419 ms**
-
-| # | Check | Result | Duration |
-|---|---|---|---|
-| 1 | Endpoint health | **PASS** | 49 ms |
-| 2 | Basic completion | **PASS** | 4 177 ms |
-| 3 | Structured output (ADK path) | **PASS** | 4 333 ms |
-| 4 | Tool call (`agent_used_tool=True`) | **PASS** | 10 857 ms |
-| 5 | Report integrity (JSON round-trip) | **PASS** | 1 ms |
-
-Unit tests: **33 / 33 passed** (offline, no Ollama)  
-Live integration tests: **5 / 5 passed**
-
-See [`runs/example_report.json`](runs/example_report.json) for the full
-serialised `ProbeResult`.
-
----
-
-## Acceptance criteria status
-
-| Criterion | Status | Evidence |
-|---|---|---|
-| Local Ollama endpoint responds | **PASS** | `GET /api/tags` → HTTP 200, `gemma4:latest` listed |
-| Basic completion returns non-empty string | **PASS** | 194–528 chars returned across runs |
-| Structured output validates against schema | **PASS** | `StructuredResponse(answer='Paris', confidence=1.0, reasoning=…)` validated by Pydantic v2 |
-| Tool call: model requested the tool | **PASS** | `agent_used_tool=True`; ADK event stream shows `function_call` part before `function_response` |
-| Tool call: ADK runner executed the real function | **PASS** | ADK made two LiteLLM calls (one for tool request, one for final answer); payload contains ground-truth values from the Python function |
-| Report serialises and deserialises correctly | **PASS** | 1 291-byte JSON round-trips with identical field values |
-| Offline unit tests pass | **PASS** | 33 / 33 |
-| Live integration tests pass | **PASS** | 5 / 5 |
-
----
-
-## Limitations and observations
-
-### Gemma 4 thinking mode
-`gemma4:latest` has thinking mode **on by default** (`temperature=1`). The model
-emits internal reasoning text before its final answer. The `complete()` path
-accumulates all text parts from the event stream including thinking output — the
-visible answer appears at the end. The `complete_structured()` path uses
-`_extract_json()` which finds the first valid `{…}` block regardless of position,
-so thinking preamble does not break structured parsing.
-
-### LiteLLM `mcp` import bug
-`litellm 1.106.0` imports the `mcp` package unconditionally when entering the
-tool-calling code path, even when MCP tools are not used. This raises
-`ModuleNotFoundError: No module named 'mcp'` without the `mcp` package installed.
-Workaround: install `mcp>=2.0.0`. This is a LiteLLM bug, not a Gemma or Ollama
-issue. Recorded in [`runs/20261018T212046Z.json`](runs/) (the failing run) for
-reference.
-
-### ADK experimental JSON schema for function declarations
-ADK 2.12.0 emits a `UserWarning` when registering plain Python function tools:
+# Or override model / base URL
+python -m lab.workflow.orchestrator --model gemma4:latest --base-url http://localhost:11434
+python -m lab.workflow.orchestrator --model qwen2.5:7b --base-url http://localhost:11434
 ```
-[EXPERIMENTAL] feature FeatureName.JSON_SCHEMA_FOR_FUNC_DECL is enabled.
+*Output: Saves complete run directory under `runs/<timestamp>/` containing `report.json`, `report.md`, `events.jsonl`, `transcript.md`, and `artifacts/`.*
+
+### D. Run Milestone 3 Benchmark Evaluation
+```bash
+# Evaluate both models sequentially with consolidated comparison
+python -m lab.evaluation.benchmark --models gemma4:latest qwen2.5:7b --repetitions 1
 ```
-This is cosmetic and does not affect functionality. Gemma 4 successfully calls the
-tool despite the experimental flag.
-
-### Tool call latency
-The tool call check takes ~10 s because ADK runs two model inference passes: one
-for the tool-selection decision and one for the final response after the tool
-returns. Basic completion and structured output each take 1–8 s depending on
-thinking depth.
-
-### `qwen2.5:7b` not used
-`qwen2.5:7b` is installed on the machine but was not used in any acceptance test.
-All checks were completed with `gemma4:latest`.
-
-### PYTHONPATH
-Because the project is not installed as a package (editable install from
-`pyproject.toml` fails with the venv's `setuptools`), all commands prefix
-`PYTHONPATH=.` to make `lab` importable. This is the only workaround needed and
-does not affect production behaviour.
+*Output: Saves isolated runs and consolidated comparison under `runs/evaluations/`.*
 
 ---
 
-## Repository structure
+## 6. Repository Structure
 
 ```
 LocalAgenticSoftwareDeliveryLab/
-├── .gitignore
 ├── README.md
 ├── pyproject.toml
 │
+├── artifacts/                         # Active workflow artifacts
+│   ├── requirements_*.json            # BA requirements
+│   ├── architecture_*.json            # Architect specifications
+│   ├── test_plan_*.json               # Test Engineer test plan
+│   └── developer_*.json               # Developer file operations
+│
 ├── lab/
-│   ├── __init__.py
-│   ├── probe.py                   # CLI: runs all five checks, writes run log
-│   │
-│   ├── runtime/
+│   ├── probe.py                       # Milestone 1 runtime probe CLI
+│   ├── evaluation/
+│   │   └── benchmark.py               # Milestone 3 benchmark harness
+│   ├── roles/                         # Specialist agent prompt instructions
 │   │   ├── __init__.py
-│   │   ├── base.py                # Abstract ModelRuntime interface
-│   │   ├── config.py              # RuntimeConfig (env vars, no secrets)
-│   │   └── adk_ollama.py          # ADK + LiteLLM → Ollama implementation
-│   │
-│   ├── schemas/
-│   │   ├── __init__.py
-│   │   └── poc.py                 # Pydantic v2: CheckResult, StructuredResponse,
-│   │                              #              ToolCallResult, ProbeResult
-│   │
-│   └── tools/
+│   │   └── prompts/
+│   │       ├── business_analyst.md
+│   │       ├── software_architect.md
+│   │       ├── test_engineer.md
+│   │       └── developer.md
+│   ├── runtime/                       # Model runtime adapters
+│   │   ├── base.py                    # ModelRuntime ABC
+│   │   ├── config.py                  # RuntimeConfig & environment loading
+│   │   └── adk_ollama.py              # Google ADK + LiteLLM + Ollama adapter
+│   ├── schemas/                       # Pydantic v2 data contracts
+│   │   ├── poc.py                     # Milestone 1 probe schemas
+│   │   └── artifacts.py               # Milestone 2 artifact schemas
+│   ├── tools/                         # Safe, bounded developer & test tools
+│   │   ├── developer_tools.py         # Controlled workspace file operations
+│   │   ├── test_runner.py             # Subprocess pytest runner
+│   │   └── workspace_info.py          # Safe workspace metadata probe
+│   └── workflow/
 │       ├── __init__.py
-│       └── workspace_info.py      # Permitted tool: safe workspace metadata
+│       ├── logger.py                  # EventLogger (events.jsonl & transcript.md)
+│       └── orchestrator.py            # Workflow orchestration & reporting
 │
-├── tests/
+├── minishop/                          # MiniShop Lite application
 │   ├── __init__.py
-│   ├── conftest.py                # Fixtures, live marker, Ollama health check
-│   ├── test_schemas.py            # Unit tests — no Ollama needed
-│   ├── test_runtime_adapter.py    # Unit tests — mocked ADK
-│   └── test_probe_live.py         # Integration tests — @pytest.mark.live
+│   ├── app.py                         # FastAPI web application
+│   ├── database.py                    # SQLite database layer & seed data
+│   ├── minishop.db                    # SQLite database file
+│   ├── static/
+│   │   └── style.css                  # UI styling
+│   └── templates/
+│       ├── base.html                  # Jinja2 layout
+│       └── catalog.html               # Catalog template & search
 │
-└── runs/
-    ├── .gitkeep
-    └── example_report.json        # Sanitised sample run report (committed)
+├── runs/                              # Execution logs, reports & transcripts
+│   └── evaluations/                   # Milestone 3 benchmark evaluations
+│
+└── tests/                             # Comprehensive test suite
+    ├── acceptance/
+    │   └── test_catalog_acceptance.py # Authoritative acceptance tests
+    ├── test_evaluation_benchmark.py   # Benchmark harness unit tests
+    ├── test_m2_schemas.py             # Schema & alias validation unit tests
+    ├── test_m2_tools.py               # Tool boundary & safety unit tests
+    ├── test_probe_live.py             # Live Ollama integration tests
+    ├── test_runtime_adapter.py        # Runtime adapter unit tests
+    ├── test_schemas.py                # Milestone 1 schema unit tests
+    ├── test_structured_retry.py       # JSON extraction & retry unit tests
+    └── test_workflow_orchestrator.py  # Orchestrator flow & diagnostics tests
 ```
-
----
-
-## What is deferred to later milestones
-
-- Full specialist-agent roles (business analyst, architect, developer, test engineer)
-- Multi-agent collaboration and routing
-- Domain logic (e-commerce application)
-- Persistent session storage
-- Role instruction files (stubs in `lab/roles/` are intentionally empty)

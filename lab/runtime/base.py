@@ -7,9 +7,12 @@ Swapping the runtime must not require changes to workflow or role logic.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TypeVar
 
+from pydantic import BaseModel
 from lab.schemas.poc import StructuredResponse, ToolCallResult
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class ModelRuntime(ABC):
@@ -57,6 +60,48 @@ class ModelRuntime(ABC):
         Raises:
             ValueError: if the model response cannot be parsed into the schema.
             RuntimeError: if the model or endpoint is unavailable.
+        """
+
+    @abstractmethod
+    async def complete_structured_schema(
+        self,
+        prompt: str,
+        schema: type[T],
+        instruction: str | None = None,
+        session_id: str = "structured",
+        max_retries: int = 2,
+    ) -> T:
+        """Return a validated instance of Pydantic model *schema* for *prompt*.
+
+        Args:
+            prompt: The user prompt to supply to the model.
+            schema: The target Pydantic model class.
+            instruction: Optional system instruction overriding the default.
+            session_id: ADK session identifier for isolation.
+            max_retries: Maximum number of bounded correction retries on schema validation failure.
+
+        Returns:
+            Validated instance of *schema*.
+        """
+
+    @abstractmethod
+    async def run_agent(
+        self,
+        instruction: str,
+        user_message: str,
+        tools: list[Any] | None = None,
+        session_id: str = "agent",
+    ) -> tuple[str, list[dict]]:
+        """Run an agent turn with optional tools and return (final_text, event_summaries).
+
+        Args:
+            instruction: Role instructions/system prompt for the agent.
+            user_message: User request or task instructions.
+            tools: Optional sequence of callable tools exposed to the agent.
+            session_id: ADK session identifier for isolation.
+
+        Returns:
+            Tuple of (final_response_text, list_of_event_summaries).
         """
 
     @abstractmethod
