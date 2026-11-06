@@ -5,20 +5,23 @@ Safety constraints:
 - Path traversal (e.g. '..', absolute paths outside workspace) is blocked and raises SecurityError.
 - Authoritative acceptance tests, git repos, virtual environments, and lab code cannot be modified.
 - Bounded file size prevents memory or disk exhaustion.
+- Writes are atomic, so a crash can never leave a half-written source file.
 - No shell execution, network access, or secret exposure.
 """
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from typing import Sequence
+from typing import Callable, Sequence
 
 from lab.schemas.artifacts import FileOperationRecord
+from lab.tools.fsutil import atomic_write_text
 
 # Default workspace root is the minishop directory inside the repository (for backwards compatibility)
 DEFAULT_WORKSPACE_ROOT = Path(__file__).resolve().parents[2] / "minishop"
 MAX_FILE_SIZE_BYTES = 1_048_576  # 1 MB
+PROTECTED_DIR_NAMES = frozenset({".git", ".venv", "acceptance_tests"})
+LIST_IGNORED_DIR_NAMES = frozenset({"__pycache__", "node_modules", ".pytest_cache", ".venv", ".git"})
 
 
 class SecurityError(PermissionError):
@@ -69,9 +72,13 @@ class ProjectWorkspace:
                 f"Path {relative_path!r} resolves outside workspace root {self.root}: {target}"
             ) from exc
 
-        # Protected names/extensions check
-        lowered = target.as_posix().lower()
-        if any(term in lowered for term in [".git", ".venv", "tests/acceptance", "acceptance_tests"]):
+        # Protected names check.  This looks only at the path below the workspace
+        # root, so a workspace may live anywhere, and compares whole components, so
+        # ordinary files such as '.gitignore' remain writable.
+        relative_parts = tuple(part.lower() for part in target.relative_to(self.root).parts)
+        names_protected_dir = any(part in PROTECTED_DIR_NAMES for part in relative_parts)
+        names_acceptance_tests = "tests/acceptance" in "/".join(relative_parts)
+        if names_protected_dir or names_acceptance_tests:
             raise SecurityError(
                 f"Access to protected system or test path is forbidden: {relative_path!r}"
             )
@@ -102,11 +109,6 @@ class ProjectWorkspace:
         Returns:
             Success confirmation string.
         """
-            content: Text content to write.
-
-        Returns:
-            Success confirmation string.
-        """
         try:
             target = self._validate_safe_path(relative_path)
             content_bytes = content.encode("utf-8")
@@ -115,8 +117,7 @@ class ProjectWorkspace:
                     f"File content exceeds maximum permitted size of {MAX_FILE_SIZE_BYTES} bytes."
                 )
 
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(content, encoding="utf-8")
+            atomic_write_text(target, content)
 
             record = FileOperationRecord(
                 file_path=relative_path,
@@ -183,9 +184,11 @@ class ProjectWorkspace:
         """
         files: list[str] = []
         for path in self.root.rglob("*"):
+            relative = path.relative_to(self.root)
+            if LIST_IGNORED_DIR_NAMES.intersection(relative.parts):
+                continue
             if path.is_file() and not path.name.startswith("."):
-                rel = path.relative_to(self.root).as_posix()
-                files.append(rel)
+                files.append(relative.as_posix())
         files.sort()
         record = FileOperationRecord(
             file_path=".",
@@ -198,8 +201,10 @@ class ProjectWorkspace:
         return files
 
 
-# Global singleton workspace instance for standard agent invocation
-_ACTIVE_WORKSPACE = ProjectWorkspace()
+# Singleton used by the legacy Milestone 2 workflow.  It is created on first use so
+# that importing this module has no filesystem side effect.  The product team never
+# touches it: every product gets its own tools from build_developer_tools().
+_ACTIVE_WORKSPACE: ProjectWorkspace | None = None
 
 
 def set_active_workspace(
@@ -213,6 +218,9 @@ def set_active_workspace(
 
 def get_active_workspace() -> ProjectWorkspace:
     """Return the currently active ProjectWorkspace."""
+    global _ACTIVE_WORKSPACE
+    if _ACTIVE_WORKSPACE is None:
+        _ACTIVE_WORKSPACE = ProjectWorkspace()
     return _ACTIVE_WORKSPACE
 
 
@@ -223,7 +231,7 @@ def write_project_file(relative_path: str, content: str) -> str:
         relative_path: Relative path such as 'main.py' or 'models.py'
         content: The text/code content to write.
     """
-    return _ACTIVE_WORKSPACE.write_file(relative_path, content)
+    return get_active_workspace().write_file(relative_path, content)
 
 
 def read_project_file(relative_path: str) -> str:
@@ -232,9 +240,50 @@ def read_project_file(relative_path: str) -> str:
     Args:
         relative_path: Relative path such as 'main.py' or 'database.py'
     """
-    return _ACTIVE_WORKSPACE.read_file(relative_path)
+    return get_active_workspace().read_file(relative_path)
 
 
 def list_project_files() -> list[str]:
     """List all project files inside the active workspace."""
-    return _ACTIVE_WORKSPACE.list_files()
+    return get_active_workspace().list_files()
+
+
+def build_developer_tools(workspace: ProjectWorkspace) -> list[Callable[..., object]]:
+    """Return agent tools permanently bound to one product's workspace.
+
+    Binding by closure instead of the module-level singleton is what keeps
+    products isolated: the tool an agent holds cannot be repointed elsewhere.
+
+    A refused path or missing file comes back as an error string, because that is
+    a mistake the model can read and correct within its turn.  Real filesystem
+    faults such as a full disk still raise, and stop the task.
+    """
+
+    def write_project_file(relative_path: str, content: str) -> str:
+        """Write complete text content to a file in the product workspace.
+
+        Args:
+            relative_path: Path relative to the workspace root, such as 'main.py'.
+            content: The full text of the file.
+        """
+        try:
+            return workspace.write_file(relative_path, content)
+        except SecurityError as exc:
+            return f"ERROR: {exc}"
+
+    def read_project_file(relative_path: str) -> str:
+        """Read a text file from the product workspace.
+
+        Args:
+            relative_path: Path relative to the workspace root, such as 'main.py'.
+        """
+        try:
+            return workspace.read_file(relative_path)
+        except (SecurityError, FileNotFoundError, IsADirectoryError, UnicodeDecodeError) as exc:
+            return f"ERROR: {exc}"
+
+    def list_project_files() -> list[str]:
+        """List the files currently in the product workspace."""
+        return workspace.list_files()
+
+    return [write_project_file, read_project_file, list_project_files]

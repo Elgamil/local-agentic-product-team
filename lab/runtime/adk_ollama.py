@@ -124,6 +124,10 @@ def _extract_json(text: str) -> dict:
     raise ValueError(f"No valid JSON object found in model response: {text!r}")
 
 
+#: Public name for the shared structured-output extractor.
+extract_json = _extract_json
+
+
 # ---------------------------------------------------------------------------
 # Main runtime class
 # ---------------------------------------------------------------------------
@@ -193,11 +197,19 @@ class OllamaAdkRuntime(ModelRuntime):
 
         model_kwargs: dict[str, Any] = {
             "model": self._config.litellm_model,
-            "max_tokens": 8192,
-            "num_predict": 8192,
+            "max_tokens": self._config.max_output_tokens,
+            "num_predict": self._config.max_output_tokens,
         }
         if response_format:
             model_kwargs["response_format"] = response_format
+        if self._config.num_ctx is not None:
+            model_kwargs["num_ctx"] = self._config.num_ctx
+        if self._config.keep_alive is not None:
+            model_kwargs["keep_alive"] = self._config.keep_alive
+        if self._config.think is not None:
+            model_kwargs["think"] = self._config.think
+        if self._config.request_timeout_seconds is not None:
+            model_kwargs["timeout"] = self._config.request_timeout_seconds
 
         model = LiteLlm(**model_kwargs)
         agent = LlmAgent(
@@ -230,11 +242,18 @@ class OllamaAdkRuntime(ModelRuntime):
         final_text = ""
         event_summaries: list[dict] = []
 
+        run_kwargs: dict[str, Any] = {}
+        if self._config.max_llm_calls is not None:
+            from google.adk.agents.run_config import RunConfig
+
+            run_kwargs["run_config"] = RunConfig(max_llm_calls=self._config.max_llm_calls)
+
         t0 = time.perf_counter()
         async for event in runner.run_async(
             user_id=user_id,
             session_id=session.id,
             new_message=content,
+            **run_kwargs,
         ):
             summary: dict = {
                 "author": getattr(event, "author", None),
@@ -243,7 +262,12 @@ class OllamaAdkRuntime(ModelRuntime):
 
             if event.content:
                 parts_info = []
-                for part in event.content.parts:
+                for part in event.content.parts or []:
+                    # Thinking-capable models (gemma4) deliver reasoning as thought
+                    # parts.  It is not part of the answer and must never be parsed
+                    # as output or persisted to a transcript.
+                    if getattr(part, "thought", False) is True:
+                        continue
                     part_d: dict = {}
                     if hasattr(part, "text") and part.text:
                         final_text += part.text
@@ -430,6 +454,22 @@ class OllamaAdkRuntime(ModelRuntime):
             tools=tools or [],
             user_message=user_message,
             session_id=session_id,
+        )
+
+    async def generate(
+        self,
+        instruction: str,
+        user_message: str,
+        tools: list[Any] | None = None,
+        json_mode: bool = False,
+        session_id: str = "generate",
+    ) -> tuple[str, list[dict]]:
+        return await self._run_adk_agent(
+            instruction=instruction,
+            tools=tools or [],
+            user_message=user_message,
+            session_id=session_id,
+            response_format={"type": "json_object"} if json_mode else None,
         )
 
     async def call_tool(

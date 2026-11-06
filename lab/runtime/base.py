@@ -104,6 +104,35 @@ class ModelRuntime(ABC):
             Tuple of (final_response_text, list_of_event_summaries).
         """
 
+    async def generate(
+        self,
+        instruction: str,
+        user_message: str,
+        tools: list[Any] | None = None,
+        json_mode: bool = False,
+        session_id: str = "generate",
+    ) -> tuple[str, list[dict]]:
+        """Make exactly one model turn and return (text, event_summaries) unvalidated.
+
+        This is the primitive :class:`lab.runtime.router.ModelRouter` builds on.
+        It deliberately performs no retries, so the router's bound of two attempts
+        per model cannot be multiplied by retries hidden further down.
+
+        Args:
+            instruction: Role instructions/system prompt.
+            user_message: The task prompt.
+            tools: Optional callable tools exposed to the agent.
+            json_mode: Ask the model for a JSON object.
+            session_id: Session identifier for isolation.
+        """
+        del json_mode  # Runtimes without a JSON mode rely on the prompt alone.
+        return await self.run_agent(
+            instruction=instruction,
+            user_message=user_message,
+            tools=tools,
+            session_id=session_id,
+        )
+
     @abstractmethod
     async def call_tool(
         self,

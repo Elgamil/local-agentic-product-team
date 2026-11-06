@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "local-agentic-lab"
 version = "0.1.0"
-description = "Local-first, model-independent agentic software delivery lab — Milestone 1 PoC"
+description = "Local-first AI product development team: an interactive, persistent, multi-agent platform"
 requires-python = ">=3.11"
 dependencies = [
     "google-adk>=1.0.0",
     "litellm>=1.40.0",
     "ollama>=0.3.0",
     "pydantic>=2.0.0",
+    "pyyaml>=6.0",
     "httpx>=0.27.0",
     "mcp>=2.0.0",
     "pytest>=8.0.0",
@@ -22,8 +23,14 @@ dependencies = [
 where = ["."]
 include = ["lab*", "minishop*"]
 
+[project.scripts]
+product-team = "lab.cli:main"
+
 [tool.setuptools.package-data]
 minishop = ["templates/*", "static/*"]
+"lab.config" = ["*.yaml"]
+"lab.playbooks" = ["*.md"]
+"lab.roles" = ["prompts/*.md", "prompts/team/*.md"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

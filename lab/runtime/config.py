@@ -29,6 +29,16 @@ class RuntimeConfig:
     litellm_provider: str = field(
         default_factory=lambda: os.environ.get("LAB_LITELLM_PROVIDER", "ollama_chat")
     )
+    # Output ceiling sent as both max_tokens and Ollama's num_predict.
+    max_output_tokens: int = 8192
+    # The options below are opt-in: None leaves the request exactly as it was, so
+    # existing callers keep their behaviour.  lab/config/model_policy.yaml sets them
+    # for the product team.
+    num_ctx: int | None = None
+    keep_alive: str | int | None = None
+    think: bool | None = None
+    request_timeout_seconds: float | None = None
+    max_llm_calls: int | None = None
 
     @property
     def litellm_model(self) -> str:

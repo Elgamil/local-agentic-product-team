@@ -1,0 +1,60 @@
+# Allow-list of verification commands.
+#
+# Agents choose a profile by id and nothing more. They cannot supply a command,
+# an argument or a working directory: the argv below runs as written, without a
+# shell, and only {tests_dir} and {workspace} are substituted by the orchestrator.
+#
+# To support another stack, add a profile here. A single product can add its own
+# in products_log/<slug>/verification/profiles.yaml, which sits outside the
+# Developer's workspace.
+#
+# There is deliberately no "npm test" or "make test" profile. Those run scripts
+# the Developer writes, which would let the Developer define its own verification.
+
+profiles:
+  python_pytest:
+    description: "Python code, or any files checkable from Python, tested with pytest."
+    executable: python
+    args: ["-m", "pytest", "{tests_dir}", "-v", "--tb=short", "-p", "no:cacheprovider"]
+    result_parser: pytest
+    test_file_patterns: ["test_*.py"]
+    helper_file_patterns: ["conftest.py", "*_helpers.py"]
+    support_files:
+      # Stops pytest walking up and picking up this repository's own configuration.
+      pytest.ini: "[pytest]\n"
+    timeout_seconds: 120
+    authoring_notes: |
+      Write pytest tests. The product workspace is on PYTHONPATH, so import product
+      modules directly by their path relative to the workspace root, for example
+      `import game` or `from shop.cart import add_item`. The absolute workspace path
+      is also available as os.environ["PRODUCT_WORKSPACE"] for reading non-Python
+      files such as HTML. Tests run with the workspace as the working directory.
+
+  python_unittest:
+    description: "Python code tested with the standard library unittest runner."
+    executable: python
+    args: ["-m", "unittest", "discover", "-s", "{tests_dir}", "-v"]
+    result_parser: unittest
+    test_file_patterns: ["test_*.py"]
+    helper_file_patterns: ["*_helpers.py"]
+    timeout_seconds: 120
+    authoring_notes: |
+      Write unittest.TestCase classes. The product workspace is on PYTHONPATH, so
+      import product modules directly by their path relative to the workspace root.
+      The absolute workspace path is available as os.environ["PRODUCT_WORKSPACE"].
+
+  node_test:
+    description: "JavaScript tested with Node's built-in test runner. Needs no npm install."
+    executable: node
+    args:
+      - "--test"
+      - "--test-reporter=tap"
+      - "{tests_dir}/**/*.test.mjs"
+    result_parser: tap
+    test_file_patterns: ["*.test.mjs"]
+    helper_file_patterns: ["*_helpers.mjs"]
+    timeout_seconds: 120
+    authoring_notes: |
+      Write ES module tests using node:test and node:assert. Load product code with
+      `await import(path.join(process.env.PRODUCT_WORKSPACE, 'game.mjs'))`, because
+      the tests live outside the workspace. Use only Node built-in modules.

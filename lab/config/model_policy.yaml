@@ -1,0 +1,76 @@
+# Model routing, failover and memory policy for the product team.
+#
+# Local models only. Every id below must already be installed in Ollama;
+# nothing here triggers a download.
+
+models:
+  gemma:
+    id: "gemma4:latest"
+    # About 9.6 GB of weights on a 16 GB Mac, so the context window stays modest.
+    # Ollama would otherwise pick its own default, which on this machine can be
+    # far too small for these prompts.
+    num_ctx: 8192
+    max_output_tokens: 4096
+    # Gemma reasons before answering unless told not to. That reasoning is hidden
+    # chain-of-thought we neither want nor keep, and it would use up the output limit.
+    think: false
+  qwen:
+    id: "qwen2.5:7b"
+    # About 4.7 GB of weights, which leaves room for a larger context window.
+    num_ctx: 16384
+    max_output_tokens: 6144
+
+roles:
+  business_analyst:
+    primary: gemma
+    fallback: qwen
+  software_architect:
+    primary: qwen
+    fallback: gemma
+  developer:
+    primary: qwen
+    fallback: gemma
+  test_engineer:
+    # Runs on the model opposite to the one that produced the Developer's work,
+    # and falls back to the Developer's model. `primary` and `fallback` are not
+    # used by this strategy.
+    strategy: alternate_of_developer
+
+retry:
+  # Two attempts per model per logical task, so four across both models.
+  attempts_per_model: 2
+
+timeouts:
+  # Wall-clock limit for one model attempt, including time to load the model.
+  inference_seconds: 900
+
+memory:
+  # Unload the resident model before loading a different one. Both models
+  # together do not fit comfortably in 16 GB.
+  unload_between_models: true
+  # How long Ollama keeps a model loaded after the last request.
+  keep_alive: "5m"
+  # Bound on how long to wait for Ollama to confirm an unload.
+  unload_wait_seconds: 20
+
+context:
+  # Conservative characters-per-token estimate used to size prompts per model.
+  chars_per_token: 3.0
+  # Tokens held back for the instruction and the JSON schema.
+  reserved_tokens: 1400
+  # Largest share of the prompt any single context section may take.
+  max_section_chars: 6000
+  # Recent conversation turns shown to the Business Analyst.
+  max_conversation_turns: 12
+  # Workspace files retrieved as relevant context, and the cap on each one.
+  retrieval_top_k: 4
+  retrieval_file_chars: 2400
+
+agent:
+  # Model turns allowed inside one tool-using task, so a looping agent stops.
+  max_llm_calls_per_task: 12
+
+workflow:
+  discovery_max_rounds: 5
+  # Developer repair cycles per step before the step is reported as failing.
+  max_repair_cycles: 2
